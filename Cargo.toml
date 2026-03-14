@@ -2,6 +2,9 @@
 name = "rtcli"
 version = "0.1.0"
 edition = "2024"
+repository = "https://github.com/angularbanjo/rtcli"
+license = "Apache-2.0"
+description = "Modern, portable rtorrent CLI"
 
 [dependencies]
 clap = { version = "4", features = ["derive", "env"] }
