@@ -1,4 +1,5 @@
 mod cli;
+mod config;
 mod error;
 mod format;
 mod rpc;
@@ -60,13 +61,11 @@ fn cmd_show(client: &Client, hash_prefix: &str, json: bool) -> error::Result<()>
 
 fn main() {
     let cli = Cli::parse();
-    let url = match cli.url {
-        Some(u) => u,
-        None => {
-            eprintln!("error: --url is required (or set RTCLI_URL)");
-            process::exit(2);
-        }
-    };
+    let cfg = config::load_config();
+    let url = cli.url.or(cfg.url).unwrap_or_else(|| {
+        eprintln!("error: --url is required (or set RTCLI_URL or configure ~/.config/rtcli/config.toml)");
+        process::exit(2);
+    });
     let client = Client::new(url);
 
     let result = match cli.command {
