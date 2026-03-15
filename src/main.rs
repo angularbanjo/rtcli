@@ -34,6 +34,18 @@ fn cmd_list(client: &Client, json: bool) -> error::Result<()> {
     Ok(())
 }
 
+fn cmd_add(
+    client: &Client,
+    torrent_path: &std::path::Path,
+    download_location: Option<&str>,
+    start: bool,
+) -> error::Result<()> {
+    let data = std::fs::read(torrent_path)?;
+    client.add_torrent(&data, download_location, start)?;
+    println!("Torrent added.");
+    Ok(())
+}
+
 fn cmd_show(client: &Client, hash_prefix: &str, json: bool) -> error::Result<()> {
     let hash = client.resolve_hash(hash_prefix)?;
     let torrents = client.list_torrents()?;
@@ -71,6 +83,9 @@ fn main() {
     let result = match cli.command {
         Command::List { json } => cmd_list(&client, json),
         Command::Show { hash, json } => cmd_show(&client, &hash, json),
+        Command::Add { torrent, download_location, start } => {
+            cmd_add(&client, &torrent, download_location.as_deref(), start)
+        }
     };
 
     if let Err(e) = result {

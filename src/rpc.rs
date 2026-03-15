@@ -105,6 +105,26 @@ impl Client {
         }
     }
 
+    pub fn add_torrent(
+        &self,
+        data: &[u8],
+        download_location: Option<&str>,
+        start: bool,
+    ) -> Result<()> {
+        use base64::{Engine as _, engine::general_purpose::STANDARD};
+        let data_uri = format!("data:application/octet-stream;base64,{}", STANDARD.encode(data));
+
+        let method = if start { "load.raw_start_verbose" } else { "load.raw_verbose" };
+
+        let mut params: Vec<Value> = vec![json!(""), json!(data_uri)];
+        if let Some(dir) = download_location {
+            params.push(json!(format!("d.directory.set={dir}")));
+        }
+
+        self.call(method, params)?;
+        Ok(())
+    }
+
     pub fn get_files(&self, hash: &str) -> Result<Vec<TorrentFile>> {
         let result = self.call(
             "f.multicall",

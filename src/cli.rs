@@ -27,4 +27,15 @@ pub enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Add a torrent from a .torrent file
+    Add {
+        /// Path to .torrent file
+        torrent: std::path::PathBuf,
+        /// Download directory (overrides rtorrent default)
+        #[arg(long)]
+        download_location: Option<String>,
+        /// Start the torrent immediately
+        #[arg(long, default_value_t = false)]
+        start: bool,
+    },
 }
