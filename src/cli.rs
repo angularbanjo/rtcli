@@ -45,4 +45,14 @@ pub enum Command {
         #[arg(long, default_value_t = false)]
         start: bool,
     },
+    /// Start an existing torrent
+    Start {
+        /// Torrent hash or hash prefix
+        hash: String,
+    },
+    /// Stop an existing torrent
+    Stop {
+        /// Torrent hash or hash prefix
+        hash: String,
+    },
 }

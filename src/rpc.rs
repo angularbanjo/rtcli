@@ -125,6 +125,16 @@ impl Client {
         Ok(())
     }
 
+    pub fn start_torrent(&self, hash: &str) -> Result<()> {
+        self.call("d.start", vec![json!(hash)])?;
+        Ok(())
+    }
+
+    pub fn stop_torrent(&self, hash: &str) -> Result<()> {
+        self.call("d.stop", vec![json!(hash)])?;
+        Ok(())
+    }
+
     pub fn get_files(&self, hash: &str) -> Result<Vec<TorrentFile>> {
         let result = self.call(
             "f.multicall",

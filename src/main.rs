@@ -182,6 +182,46 @@ fn cmd_show(client: &Client, hash_prefix: &str, json: bool) -> error::Result<()>
     Ok(())
 }
 
+fn cmd_start(client: &Client, hash_prefix: &str) -> error::Result<()> {
+    let hash = match client.resolve_hash(hash_prefix) {
+        Ok(h) => h,
+        Err(error::Error::AmbiguousMatch(_)) => {
+            let prefix_upper = hash_prefix.to_uppercase();
+            let matches: Vec<Torrent> = client
+                .list_torrents()?
+                .into_iter()
+                .filter(|t| t.hash.to_uppercase().starts_with(&prefix_upper))
+                .collect();
+            format::print_torrent_list(&matches);
+            return Err(error::Error::AmbiguousMatch(hash_prefix.to_string()));
+        }
+        Err(e) => return Err(e),
+    };
+    client.start_torrent(&hash)?;
+    println!("Torrent started.");
+    Ok(())
+}
+
+fn cmd_stop(client: &Client, hash_prefix: &str) -> error::Result<()> {
+    let hash = match client.resolve_hash(hash_prefix) {
+        Ok(h) => h,
+        Err(error::Error::AmbiguousMatch(_)) => {
+            let prefix_upper = hash_prefix.to_uppercase();
+            let matches: Vec<Torrent> = client
+                .list_torrents()?
+                .into_iter()
+                .filter(|t| t.hash.to_uppercase().starts_with(&prefix_upper))
+                .collect();
+            format::print_torrent_list(&matches);
+            return Err(error::Error::AmbiguousMatch(hash_prefix.to_string()));
+        }
+        Err(e) => return Err(e),
+    };
+    client.stop_torrent(&hash)?;
+    println!("Torrent stopped.");
+    Ok(())
+}
+
 fn main() {
     let cli = Cli::parse();
     let cfg = config::load_config();
@@ -199,6 +239,8 @@ fn main() {
         Command::Add { torrent, download_location, start } => {
             cmd_add(&client, &torrent, download_location.as_deref(), start)
         }
+        Command::Start { hash } => cmd_start(&client, &hash),
+        Command::Stop { hash } => cmd_stop(&client, &hash),
     };
 
     if let Err(e) = result {
