@@ -1,3 +1,9 @@
+## [0.1.2] - 2026-03-15
+
+### 🚀 Features
+
+- Add --filter and --filter-by flags to list command
+- Add start and stop commands
 ## [0.1.1] - 2026-03-15
 
 ### 🚀 Features
@@ -14,6 +20,7 @@
 - Add git-cliff config
 - Add git-cliff to cargo-release
 - Add CHANGELOG.md
+- Release rtcli version 0.1.1
 ## [0.1.0] - 2026-03-14
 
 ### ⚙️ Miscellaneous Tasks
