@@ -13,7 +13,7 @@ use serde::Serialize;
 
 use cli::{Cli, Command};
 use rpc::Client;
-use torrent::{Peer, Torrent, TorrentFile, Tracker};
+use torrent::{Peer, Status, Torrent, TorrentFile, Tracker};
 
 #[derive(Serialize)]
 struct TorrentDetail {
@@ -24,8 +24,119 @@ struct TorrentDetail {
     peers: Vec<Peer>,
 }
 
-fn cmd_list(client: &Client, json: bool) -> error::Result<()> {
-    let torrents = client.list_torrents()?;
+fn parse_bool_filter(s: &str) -> Option<bool> {
+    match s {
+        "true" | "1" | "yes" => Some(true),
+        "false" | "0" | "no" => Some(false),
+        _ => None,
+    }
+}
+
+fn parse_status_filter(s: &str) -> Option<Status> {
+    match s {
+        "stopped" => Some(Status::Stopped),
+        "seeding" => Some(Status::Seeding),
+        "downloading" => Some(Status::Downloading),
+        "hashing" => Some(Status::Hashing),
+        "error" => Some(Status::Error),
+        _ => None,
+    }
+}
+
+fn status_eq(a: &Status, b: &Status) -> bool {
+    matches!(
+        (a, b),
+        (Status::Stopped, Status::Stopped)
+            | (Status::Seeding, Status::Seeding)
+            | (Status::Downloading, Status::Downloading)
+            | (Status::Hashing, Status::Hashing)
+            | (Status::Error, Status::Error)
+    )
+}
+
+struct FilterBy {
+    key: String,
+    value: String,
+}
+
+fn parse_filter_by(entries: &[String]) -> error::Result<Vec<FilterBy>> {
+    let mut out = Vec::new();
+    for entry in entries {
+        let (k, v) = entry.split_once('=').ok_or_else(|| {
+            error::Error::Scgi(format!(
+                "invalid --filter-by value '{entry}': expected KEY=VALUE"
+            ))
+        })?;
+        match k {
+            "state" => {
+                parse_status_filter(v).ok_or_else(|| {
+                    error::Error::Scgi(format!(
+                        "invalid state '{v}': expected one of stopped, seeding, downloading, hashing, error"
+                    ))
+                })?;
+            }
+            "active" | "complete" => {
+                parse_bool_filter(v).ok_or_else(|| {
+                    error::Error::Scgi(format!(
+                        "invalid boolean '{v}': expected true/false, 1/0, or yes/no"
+                    ))
+                })?;
+            }
+            "directory" => {}
+            _ => {
+                return Err(error::Error::Scgi(format!(
+                    "unknown filter key '{k}': supported keys are state, active, complete, directory"
+                )));
+            }
+        }
+        out.push(FilterBy { key: k.to_string(), value: v.to_string() });
+    }
+    Ok(out)
+}
+
+fn apply_filters(torrents: Vec<Torrent>, filter: Option<&str>, filters: &[FilterBy]) -> Vec<Torrent> {
+    torrents
+        .into_iter()
+        .filter(|t| {
+            if let Some(needle) = filter {
+                if !t.name.to_lowercase().contains(&needle.to_lowercase()) {
+                    return false;
+                }
+            }
+            for f in filters {
+                let pass = match f.key.as_str() {
+                    "state" => {
+                        let wanted = parse_status_filter(&f.value).unwrap();
+                        status_eq(&t.status, &wanted)
+                    }
+                    "active" => {
+                        let wanted = parse_bool_filter(&f.value).unwrap();
+                        (t.is_active == 1) == wanted
+                    }
+                    "complete" => {
+                        let wanted = parse_bool_filter(&f.value).unwrap();
+                        (t.complete == 1) == wanted
+                    }
+                    "directory" => t.directory.to_lowercase().contains(&f.value.to_lowercase()),
+                    _ => true,
+                };
+                if !pass {
+                    return false;
+                }
+            }
+            true
+        })
+        .collect()
+}
+
+fn cmd_list(
+    client: &Client,
+    json: bool,
+    filter: Option<&str>,
+    filter_by: &[String],
+) -> error::Result<()> {
+    let filters = parse_filter_by(filter_by)?;
+    let torrents = apply_filters(client.list_torrents()?, filter, &filters);
     if json {
         println!("{}", serde_json::to_string_pretty(&torrents)?);
     } else {
@@ -81,7 +192,9 @@ fn main() {
     let client = Client::new(url);
 
     let result = match cli.command {
-        Command::List { json } => cmd_list(&client, json),
+        Command::List { json, filter, filter_by } => {
+            cmd_list(&client, json, filter.as_deref(), &filter_by)
+        }
         Command::Show { hash, json } => cmd_show(&client, &hash, json),
         Command::Add { torrent, download_location, start } => {
             cmd_add(&client, &torrent, download_location.as_deref(), start)

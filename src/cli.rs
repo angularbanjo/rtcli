@@ -18,6 +18,13 @@ pub enum Command {
         /// Output as JSON
         #[arg(long)]
         json: bool,
+        /// Filter by name (case-insensitive substring match)
+        #[arg(long)]
+        filter: Option<String>,
+        /// Filter by attribute, format KEY=VALUE.
+        /// Supported keys: state, active, complete, directory
+        #[arg(long = "filter-by", value_name = "KEY=VALUE")]
+        filter_by: Vec<String>,
     },
     /// Show torrent details
     Show {
