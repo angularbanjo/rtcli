@@ -1,9 +1,20 @@
+## [0.1.3] - 2026-03-21
+
+### 🚀 Features
+
+- Add rm command
+- Add rehash command
+- Add --hash flag to add cmd
 ## [0.1.2] - 2026-03-15
 
 ### 🚀 Features
 
 - Add --filter and --filter-by flags to list command
 - Add start and stop commands
+
+### ⚙️ Miscellaneous Tasks
+
+- Release rtcli version 0.1.2
 ## [0.1.1] - 2026-03-15
 
 ### 🚀 Features
