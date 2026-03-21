@@ -135,6 +135,11 @@ impl Client {
         Ok(())
     }
 
+    pub fn remove_torrent(&self, hash: &str) -> Result<()> {
+        self.call("d.erase", vec![json!(hash)])?;
+        Ok(())
+    }
+
     pub fn get_files(&self, hash: &str) -> Result<Vec<TorrentFile>> {
         let result = self.call(
             "f.multicall",

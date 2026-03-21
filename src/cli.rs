@@ -55,4 +55,9 @@ pub enum Command {
         /// Torrent hash or hash prefix
         hash: String,
     },
+    /// Remove a torrent from rtorrent
+    Rm {
+        /// Torrent hash or hash prefix
+        hash: String,
+    },
 }

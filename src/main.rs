@@ -202,6 +202,26 @@ fn cmd_start(client: &Client, hash_prefix: &str) -> error::Result<()> {
     Ok(())
 }
 
+fn cmd_rm(client: &Client, hash_prefix: &str) -> error::Result<()> {
+    let hash = match client.resolve_hash(hash_prefix) {
+        Ok(h) => h,
+        Err(error::Error::AmbiguousMatch(_)) => {
+            let prefix_upper = hash_prefix.to_uppercase();
+            let matches: Vec<Torrent> = client
+                .list_torrents()?
+                .into_iter()
+                .filter(|t| t.hash.to_uppercase().starts_with(&prefix_upper))
+                .collect();
+            format::print_torrent_list(&matches);
+            return Err(error::Error::AmbiguousMatch(hash_prefix.to_string()));
+        }
+        Err(e) => return Err(e),
+    };
+    client.remove_torrent(&hash)?;
+    println!("Torrent removed.");
+    Ok(())
+}
+
 fn cmd_stop(client: &Client, hash_prefix: &str) -> error::Result<()> {
     let hash = match client.resolve_hash(hash_prefix) {
         Ok(h) => h,
@@ -241,6 +261,7 @@ fn main() {
         }
         Command::Start { hash } => cmd_start(&client, &hash),
         Command::Stop { hash } => cmd_stop(&client, &hash),
+        Command::Rm { hash } => cmd_rm(&client, &hash),
     };
 
     if let Err(e) = result {
