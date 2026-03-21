@@ -60,4 +60,9 @@ pub enum Command {
         /// Torrent hash or hash prefix
         hash: String,
     },
+    /// Force rehash a torrent
+    Rehash {
+        /// Torrent hash or hash prefix
+        hash: String,
+    },
 }

@@ -140,6 +140,11 @@ impl Client {
         Ok(())
     }
 
+    pub fn rehash_torrent(&self, hash: &str) -> Result<()> {
+        self.call("d.check_hash", vec![json!(hash)])?;
+        Ok(())
+    }
+
     pub fn get_files(&self, hash: &str) -> Result<Vec<TorrentFile>> {
         let result = self.call(
             "f.multicall",
