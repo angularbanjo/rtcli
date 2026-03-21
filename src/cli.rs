@@ -44,6 +44,9 @@ pub enum Command {
         /// Start the torrent immediately
         #[arg(long, default_value_t = false)]
         start: bool,
+        /// Force a hash check after adding (ignored when --start is set)
+        #[arg(long, default_value_t = false)]
+        hash: bool,
     },
     /// Start an existing torrent
     Start {

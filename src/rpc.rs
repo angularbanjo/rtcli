@@ -110,6 +110,7 @@ impl Client {
         data: &[u8],
         download_location: Option<&str>,
         start: bool,
+        rehash: bool,
     ) -> Result<()> {
         use base64::{Engine as _, engine::general_purpose::STANDARD};
         let data_uri = format!("data:application/octet-stream;base64,{}", STANDARD.encode(data));
@@ -119,6 +120,9 @@ impl Client {
         let mut params: Vec<Value> = vec![json!(""), json!(data_uri)];
         if let Some(dir) = download_location {
             params.push(json!(format!("d.directory.set={dir}")));
+        }
+        if rehash && !start {
+            params.push(json!("d.check_hash="));
         }
 
         self.call(method, params)?;

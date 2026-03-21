@@ -150,9 +150,10 @@ fn cmd_add(
     torrent_path: &std::path::Path,
     download_location: Option<&str>,
     start: bool,
+    rehash: bool,
 ) -> error::Result<()> {
     let data = std::fs::read(torrent_path)?;
-    client.add_torrent(&data, download_location, start)?;
+    client.add_torrent(&data, download_location, start, rehash)?;
     println!("Torrent added.");
     Ok(())
 }
@@ -276,8 +277,8 @@ fn main() {
             cmd_list(&client, json, filter.as_deref(), &filter_by)
         }
         Command::Show { hash, json } => cmd_show(&client, &hash, json),
-        Command::Add { torrent, download_location, start } => {
-            cmd_add(&client, &torrent, download_location.as_deref(), start)
+        Command::Add { torrent, download_location, start, hash } => {
+            cmd_add(&client, &torrent, download_location.as_deref(), start, hash)
         }
         Command::Start { hash } => cmd_start(&client, &hash),
         Command::Stop { hash } => cmd_stop(&client, &hash),
