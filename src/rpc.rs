@@ -65,6 +65,7 @@ impl Client {
                 json!("d.is_open="),
                 json!("d.complete="),
                 json!("d.ratio="),
+                json!("d.chunk_size="),
                 json!("d.directory="),
                 json!("d.message="),
             ],

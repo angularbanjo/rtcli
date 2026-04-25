@@ -153,6 +153,7 @@ pub fn print_torrent_detail(t: &Torrent, files: &[TorrentFile], trackers: &[Trac
     println!("Name:       {}", t.name);
     println!("Status:     {}", t.status);
     println!("Size:       {}", format_bytes(t.size_bytes));
+    println!("Piece size: {}", format_bytes(t.piece_size));
     println!("Done:       {}", done_percent(t.completed_bytes, t.size_bytes));
     println!("Downloaded: {}", format_bytes(t.down_total));
     println!("Uploaded:   {}", format_bytes(t.up_total));

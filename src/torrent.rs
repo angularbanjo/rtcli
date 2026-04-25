@@ -41,6 +41,7 @@ pub struct Torrent {
     pub is_open: u64,
     pub complete: u64,
     pub ratio: u64,
+    pub piece_size: u64,
     pub directory: String,
     pub message: String,
     pub status: Status,
@@ -120,8 +121,9 @@ pub fn parse_torrent(arr: &[Value]) -> Result<Torrent> {
     let is_open = val_u64(arr, 12)?;
     let complete = val_u64(arr, 13)?;
     let ratio = val_u64(arr, 14)?;
-    let directory = val_str(arr, 15)?;
-    let message = val_str(arr, 16)?;
+    let piece_size = val_u64(arr, 15)?;
+    let directory = val_str(arr, 16)?;
+    let message = val_str(arr, 17)?;
     let status = derive_status(&message, complete, is_active, state);
 
     Ok(Torrent {
@@ -140,6 +142,7 @@ pub fn parse_torrent(arr: &[Value]) -> Result<Torrent> {
         is_open,
         complete,
         ratio,
+        piece_size,
         directory,
         message,
         status,
