@@ -159,8 +159,21 @@ fn cmd_add(
     Ok(())
 }
 
-fn cmd_show(client: &Client, hash_prefix: &str, json: bool) -> error::Result<()> {
-    let hash = client.resolve_hash(hash_prefix)?;
+fn cmd_show(client: &Client, hash_prefix: &str, json: bool, width: Option<u16>) -> error::Result<()> {
+    let hash = match client.resolve_hash(hash_prefix) {
+        Ok(h) => h,
+        Err(error::Error::AmbiguousMatch(_)) => {
+            let prefix_upper = hash_prefix.to_uppercase();
+            let matches: Vec<Torrent> = client
+                .list_torrents()?
+                .into_iter()
+                .filter(|t| t.hash.to_uppercase().starts_with(&prefix_upper))
+                .collect();
+            format::print_torrent_list(&matches, width);
+            return Err(error::Error::AmbiguousMatch(hash_prefix.to_string()));
+        }
+        Err(e) => return Err(e),
+    };
     let torrents = client.list_torrents()?;
     let torrent = torrents
         .into_iter()
@@ -278,7 +291,7 @@ fn main() {
         Command::List { json, filter, filter_by } => {
             cmd_list(&client, json, filter.as_deref(), &filter_by, width)
         }
-        Command::Show { hash, json } => cmd_show(&client, &hash, json),
+        Command::Show { hash, json } => cmd_show(&client, &hash, json, width),
         Command::Add { torrent, download_location, start, hash } => {
             cmd_add(&client, &torrent, download_location.as_deref(), start, hash)
         }
