@@ -1,6 +1,8 @@
 use std::io::IsTerminal;
 
 use comfy_table::{Cell, Color, Table};
+use terminal_size::{Width, terminal_size};
+use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 use crate::torrent::{Peer, Status, Torrent, TorrentFile, Tracker};
 
@@ -52,8 +54,59 @@ fn done_percent(completed: u64, total: u64) -> String {
     format!("{}%", completed * 100 / total)
 }
 
+// Returns the max chars the name column may use before truncation is needed, or None
+// if every name already fits without truncation.
+//
+// comfy_table row width = 1 + n_cols*3 + sum(col_widths), so overhead for 10 cols is 31.
+fn name_column_limit(torrents: &[Torrent], term_width: usize) -> Option<usize> {
+    const OVERHEAD: usize = 31;
+
+    let size_w = torrents.iter().map(|t| format_bytes(t.size_bytes).len()).max().unwrap_or(0).max("Size".len());
+    let status_w = torrents.iter().map(|t| t.status.to_string().len()).max().unwrap_or(0).max("Status".len());
+    let done_w = torrents.iter().map(|t| done_percent(t.completed_bytes, t.size_bytes).len()).max().unwrap_or(0).max("Done".len());
+    let up_w = torrents.iter().map(|t| format_bytes(t.up_total).len()).max().unwrap_or(0).max("Up".len());
+    let down_w = torrents.iter().map(|t| format_bytes(t.down_total).len()).max().unwrap_or(0).max("Down".len());
+    let ul_rate_w = torrents.iter().map(|t| format_rate(t.up_rate).len()).max().unwrap_or(0).max("UL Rate".len());
+    let dl_rate_w = torrents.iter().map(|t| format_rate(t.down_rate).len()).max().unwrap_or(0).max("DL Rate".len());
+    let peers_w = torrents.iter().map(|t| format!("{}/{}", t.peers_connected, t.peers_complete).len()).max().unwrap_or(0).max("Peers".len());
+    let fixed_w = 8 + size_w + status_w + done_w + up_w + down_w + ul_rate_w + dl_rate_w + peers_w;
+
+    let natural_name_w = torrents.iter().map(|t| t.name.width()).max().unwrap_or(0).max("Name".len());
+
+    if OVERHEAD + fixed_w + natural_name_w <= term_width {
+        return None;
+    }
+
+    let available = term_width.saturating_sub(OVERHEAD + fixed_w);
+    if available <= "Name".len() {
+        return None;
+    }
+
+    Some(available)
+}
+
+fn truncate_name(name: &str, max_width: usize) -> String {
+    if name.width() <= max_width || max_width <= 3 {
+        return name.to_string();
+    }
+    let target = max_width - 3;
+    let mut cols = 0;
+    let mut truncated = String::new();
+    for ch in name.chars() {
+        let ch_w = ch.width().unwrap_or(0);
+        if cols + ch_w > target {
+            break;
+        }
+        cols += ch_w;
+        truncated.push(ch);
+    }
+    format!("{truncated}...")
+}
+
 pub fn print_torrent_list(torrents: &[Torrent]) {
     let use_color = std::io::stdout().is_terminal();
+
+    let name_limit = terminal_size().and_then(|(Width(w), _)| name_column_limit(torrents, w as usize));
 
     let mut table = Table::new();
     table.set_header(vec![
@@ -62,6 +115,10 @@ pub fn print_torrent_list(torrents: &[Torrent]) {
 
     for t in torrents {
         let hash_short = &t.hash[..8.min(t.hash.len())];
+        let name = match name_limit {
+            Some(max_w) => truncate_name(&t.name, max_w),
+            None => t.name.clone(),
+        };
         let status_text = t.status.to_string();
         let status_cell = if use_color {
             Cell::new(&status_text).fg(status_color(&t.status))
@@ -71,7 +128,7 @@ pub fn print_torrent_list(torrents: &[Torrent]) {
 
         table.add_row(vec![
             Cell::new(hash_short),
-            Cell::new(&t.name),
+            Cell::new(name),
             Cell::new(format_bytes(t.size_bytes)),
             status_cell,
             Cell::new(done_percent(t.completed_bytes, t.size_bytes)),
