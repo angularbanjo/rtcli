@@ -103,10 +103,15 @@ fn truncate_name(name: &str, max_width: usize) -> String {
     format!("{truncated}...")
 }
 
-pub fn print_torrent_list(torrents: &[Torrent]) {
+pub fn print_torrent_list(torrents: &[Torrent], width_hint: Option<u16>) {
     let use_color = std::io::stdout().is_terminal();
 
-    let name_limit = terminal_size().and_then(|(Width(w), _)| name_column_limit(torrents, w as usize));
+    let effective_width = match width_hint {
+        Some(0) => None,
+        Some(w) => Some(w as usize),
+        None => terminal_size().map(|(Width(w), _)| w as usize),
+    };
+    let name_limit = effective_width.and_then(|w| name_column_limit(torrents, w));
 
     let mut table = Table::new();
     table.set_header(vec![

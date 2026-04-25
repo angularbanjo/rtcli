@@ -134,13 +134,14 @@ fn cmd_list(
     json: bool,
     filter: Option<&str>,
     filter_by: &[String],
+    width: Option<u16>,
 ) -> error::Result<()> {
     let filters = parse_filter_by(filter_by)?;
     let torrents = apply_filters(client.list_torrents()?, filter, &filters);
     if json {
         println!("{}", serde_json::to_string_pretty(&torrents)?);
     } else {
-        format::print_torrent_list(&torrents);
+        format::print_torrent_list(&torrents, width);
     }
     Ok(())
 }
@@ -183,7 +184,7 @@ fn cmd_show(client: &Client, hash_prefix: &str, json: bool) -> error::Result<()>
     Ok(())
 }
 
-fn cmd_start(client: &Client, hash_prefix: &str) -> error::Result<()> {
+fn cmd_start(client: &Client, hash_prefix: &str, width: Option<u16>) -> error::Result<()> {
     let hash = match client.resolve_hash(hash_prefix) {
         Ok(h) => h,
         Err(error::Error::AmbiguousMatch(_)) => {
@@ -193,7 +194,7 @@ fn cmd_start(client: &Client, hash_prefix: &str) -> error::Result<()> {
                 .into_iter()
                 .filter(|t| t.hash.to_uppercase().starts_with(&prefix_upper))
                 .collect();
-            format::print_torrent_list(&matches);
+            format::print_torrent_list(&matches, width);
             return Err(error::Error::AmbiguousMatch(hash_prefix.to_string()));
         }
         Err(e) => return Err(e),
@@ -203,7 +204,7 @@ fn cmd_start(client: &Client, hash_prefix: &str) -> error::Result<()> {
     Ok(())
 }
 
-fn cmd_rm(client: &Client, hash_prefix: &str) -> error::Result<()> {
+fn cmd_rm(client: &Client, hash_prefix: &str, width: Option<u16>) -> error::Result<()> {
     let hash = match client.resolve_hash(hash_prefix) {
         Ok(h) => h,
         Err(error::Error::AmbiguousMatch(_)) => {
@@ -213,7 +214,7 @@ fn cmd_rm(client: &Client, hash_prefix: &str) -> error::Result<()> {
                 .into_iter()
                 .filter(|t| t.hash.to_uppercase().starts_with(&prefix_upper))
                 .collect();
-            format::print_torrent_list(&matches);
+            format::print_torrent_list(&matches, width);
             return Err(error::Error::AmbiguousMatch(hash_prefix.to_string()));
         }
         Err(e) => return Err(e),
@@ -223,7 +224,7 @@ fn cmd_rm(client: &Client, hash_prefix: &str) -> error::Result<()> {
     Ok(())
 }
 
-fn cmd_rehash(client: &Client, hash_prefix: &str) -> error::Result<()> {
+fn cmd_rehash(client: &Client, hash_prefix: &str, width: Option<u16>) -> error::Result<()> {
     let hash = match client.resolve_hash(hash_prefix) {
         Ok(h) => h,
         Err(error::Error::AmbiguousMatch(_)) => {
@@ -233,7 +234,7 @@ fn cmd_rehash(client: &Client, hash_prefix: &str) -> error::Result<()> {
                 .into_iter()
                 .filter(|t| t.hash.to_uppercase().starts_with(&prefix_upper))
                 .collect();
-            format::print_torrent_list(&matches);
+            format::print_torrent_list(&matches, width);
             return Err(error::Error::AmbiguousMatch(hash_prefix.to_string()));
         }
         Err(e) => return Err(e),
@@ -243,7 +244,7 @@ fn cmd_rehash(client: &Client, hash_prefix: &str) -> error::Result<()> {
     Ok(())
 }
 
-fn cmd_stop(client: &Client, hash_prefix: &str) -> error::Result<()> {
+fn cmd_stop(client: &Client, hash_prefix: &str, width: Option<u16>) -> error::Result<()> {
     let hash = match client.resolve_hash(hash_prefix) {
         Ok(h) => h,
         Err(error::Error::AmbiguousMatch(_)) => {
@@ -253,7 +254,7 @@ fn cmd_stop(client: &Client, hash_prefix: &str) -> error::Result<()> {
                 .into_iter()
                 .filter(|t| t.hash.to_uppercase().starts_with(&prefix_upper))
                 .collect();
-            format::print_torrent_list(&matches);
+            format::print_torrent_list(&matches, width);
             return Err(error::Error::AmbiguousMatch(hash_prefix.to_string()));
         }
         Err(e) => return Err(e),
@@ -272,18 +273,19 @@ fn main() {
     });
     let client = Client::new(url);
 
+    let width = cli.width;
     let result = match cli.command {
         Command::List { json, filter, filter_by } => {
-            cmd_list(&client, json, filter.as_deref(), &filter_by)
+            cmd_list(&client, json, filter.as_deref(), &filter_by, width)
         }
         Command::Show { hash, json } => cmd_show(&client, &hash, json),
         Command::Add { torrent, download_location, start, hash } => {
             cmd_add(&client, &torrent, download_location.as_deref(), start, hash)
         }
-        Command::Start { hash } => cmd_start(&client, &hash),
-        Command::Stop { hash } => cmd_stop(&client, &hash),
-        Command::Rm { hash } => cmd_rm(&client, &hash),
-        Command::Rehash { hash } => cmd_rehash(&client, &hash),
+        Command::Start { hash } => cmd_start(&client, &hash, width),
+        Command::Stop { hash } => cmd_stop(&client, &hash, width),
+        Command::Rm { hash } => cmd_rm(&client, &hash, width),
+        Command::Rehash { hash } => cmd_rehash(&client, &hash, width),
     };
 
     if let Err(e) = result {

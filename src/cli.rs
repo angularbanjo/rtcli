@@ -7,6 +7,10 @@ pub struct Cli {
     #[arg(long, env = "RTCLI_URL", global = true)]
     pub url: Option<String>,
 
+    /// Maximum table width in columns; 0 = unlimited (default: terminal width)
+    #[arg(short = 'w', long, global = true)]
+    pub width: Option<u16>,
+
     #[command(subcommand)]
     pub command: Command,
 }
