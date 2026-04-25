@@ -1,3 +1,15 @@
+## [0.2.0] - 2026-04-25
+
+### 🚀 Features
+
+- Truncate torrent names to fit terminal width
+- Add -w/--width flag to override table width
+- Show piece size in show command output
+- Add stats command
+
+### 🐛 Bug Fixes
+
+- Show matching torrents on ambiguous hash in cmd_show
 ## [0.1.3] - 2026-03-21
 
 ### 🚀 Features
@@ -5,6 +17,10 @@
 - Add rm command
 - Add rehash command
 - Add --hash flag to add cmd
+
+### ⚙️ Miscellaneous Tasks
+
+- Release rtcli version 0.1.3
 ## [0.1.2] - 2026-03-15
 
 ### 🚀 Features
