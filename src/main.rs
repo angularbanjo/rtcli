@@ -16,6 +16,15 @@ use rpc::Client;
 use torrent::{Peer, Status, Torrent, TorrentFile, Tracker};
 
 #[derive(Serialize)]
+struct Stats {
+    total_torrents: usize,
+    total_uploaded: u64,
+    total_downloaded: u64,
+    overall_ratio: f64,
+    total_seeding_size: u64,
+}
+
+#[derive(Serialize)]
 struct TorrentDetail {
     #[serde(flatten)]
     torrent: Torrent,
@@ -257,6 +266,31 @@ fn cmd_rehash(client: &Client, hash_prefix: &str, width: Option<u16>) -> error::
     Ok(())
 }
 
+fn cmd_stats(client: &Client, json: bool) -> error::Result<()> {
+    let torrents = client.list_torrents()?;
+    let total_torrents = torrents.len();
+    let total_uploaded: u64 = torrents.iter().map(|t| t.up_total).sum();
+    let total_downloaded: u64 = torrents.iter().map(|t| t.down_total).sum();
+    let overall_ratio = if total_downloaded == 0 {
+        0.0_f64
+    } else {
+        total_uploaded as f64 / total_downloaded as f64
+    };
+    let total_seeding_size: u64 = torrents
+        .iter()
+        .filter(|t| matches!(t.status, Status::Seeding))
+        .map(|t| t.size_bytes)
+        .sum();
+
+    if json {
+        let stats = Stats { total_torrents, total_uploaded, total_downloaded, overall_ratio, total_seeding_size };
+        println!("{}", serde_json::to_string_pretty(&stats)?);
+    } else {
+        format::print_stats(total_torrents, total_uploaded, total_downloaded, overall_ratio, total_seeding_size);
+    }
+    Ok(())
+}
+
 fn cmd_stop(client: &Client, hash_prefix: &str, width: Option<u16>) -> error::Result<()> {
     let hash = match client.resolve_hash(hash_prefix) {
         Ok(h) => h,
@@ -299,6 +333,7 @@ fn main() {
         Command::Stop { hash } => cmd_stop(&client, &hash, width),
         Command::Rm { hash } => cmd_rm(&client, &hash, width),
         Command::Rehash { hash } => cmd_rehash(&client, &hash, width),
+        Command::Stats { json } => cmd_stats(&client, json),
     };
 
     if let Err(e) = result {

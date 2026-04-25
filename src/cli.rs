@@ -72,4 +72,10 @@ pub enum Command {
         /// Torrent hash or hash prefix
         hash: String,
     },
+    /// Show global statistics
+    Stats {
+        /// Output as JSON
+        #[arg(long)]
+        json: bool,
+    },
 }

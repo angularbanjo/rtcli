@@ -103,6 +103,14 @@ fn truncate_name(name: &str, max_width: usize) -> String {
     format!("{truncated}...")
 }
 
+pub fn print_stats(total: usize, uploaded: u64, downloaded: u64, ratio: f64, seeding_size: u64) {
+    println!("Torrents:     {total}");
+    println!("Uploaded:     {}", format_bytes(uploaded));
+    println!("Downloaded:   {}", format_bytes(downloaded));
+    println!("Ratio:        {ratio:.3}");
+    println!("Seeding size: {}", format_bytes(seeding_size));
+}
+
 pub fn print_torrent_list(torrents: &[Torrent], width_hint: Option<u16>) {
     let use_color = std::io::stdout().is_terminal();
 
